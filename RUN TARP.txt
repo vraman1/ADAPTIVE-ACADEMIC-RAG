@@ -1,0 +1,8 @@
+python -m backend.app.main
+streamlit run frontend/streamlit_app.py
+
+python -m scripts.test_retrieval
+
+python -m scripts.test_adaptive_rag
+
+Explain the five tiers of Streaming Analytics Architecture
