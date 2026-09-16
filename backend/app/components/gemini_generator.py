@@ -11,7 +11,7 @@ client = genai.Client(
 
 
 GENERATION_MODEL = (
-    "gemini-2.5-flash"
+    "gemini-3.6-flash"
 )
 
 

@@ -1,152 +1,70 @@
 import re
 
 
-DEFINITION_PATTERNS = [
-    r"\bdefine\b",
-    r"\bdefinition of\b",
-    r"\bmeaning of\b",
-    r"\bwhat is\b",
-    r"\bwhat's\b",
-]
+def detect_intent(query: str) -> str:
+    q = query.lower()
 
-
-COMPARISON_PATTERNS = [
-    r"\bcompare\b",
-    r"\bcomparison\b",
-    r"\bdifference\b",
-    r"\bdifferences\b",
-    r"\bdifferentiate\b",
-    r"\bcontrast\b",
-    r"\bversus\b",
-    r"\bvs\.?\b",
-]
-
-
-SUMMARY_PATTERNS = [
-    r"\bsummarize\b",
-    r"\bsummarise\b",
-    r"\bsummary\b",
-    r"\bbriefly\b",
-    r"\bkey points\b",
-]
-
-
-EXPLANATION_PATTERNS = [
-    r"\bexplain\b",
-    r"\bdescribe\b",
-    r"\bhow does\b",
-    r"\bhow do\b",
-    r"\bwhy\b",
-    r"\badvantages?\b",
-    r"\bbenefits?\b",
-    r"\bfeatures?\b",
-    r"\bimportance\b",
-    r"\brole of\b",
-]
-
-
-EXAMPLE_PATTERNS = [
-    r"\bexample\b",
-    r"\bexamples\b",
-    r"\billustrate\b",
-    r"\buse cases?\b",
-    r"\bapplications?\b",
-]
-
-
-def _matches_any(
-    text: str,
-    patterns: list[str],
-) -> bool:
-
-    return any(
-        re.search(pattern, text)
-        for pattern in patterns
-    )
-
-
-def analyze_query(
-    query: str,
-) -> dict:
-
-    q = query.lower().strip()
-
-    if not q:
-
-        return {
-            "query": query,
-            "intent": "general",
-            "complexity": "low",
-            "multi_concept": False,
-            "required_count": None,
-            "learning_context": "conceptual_learning",
-        }
-
-    # Order matters.
-    # Comparison should be detected before generic
-    # explanation/definition patterns.
-
-    if _matches_any(
+    if re.search(
+        r"\b(compare|comparison|difference|differences|differentiate|"
+        r"contrast|versus|vs\.?)\b",
         q,
-        COMPARISON_PATTERNS,
     ):
+        return "comparison"
 
-        intent = "comparison"
-
-    elif _matches_any(
+    if re.search(
+        r"\b(summarize|summarise|summary|briefly|key points)\b",
         q,
-        SUMMARY_PATTERNS,
     ):
+        return "summarization"
 
-        intent = "summarization"
-
-    elif _matches_any(
+    if re.search(
+        r"\b(example|examples|illustrate|use cases?|applications?)\b",
         q,
-        EXAMPLE_PATTERNS,
     ):
+        return "example"
 
-        intent = "example"
-
-    elif _matches_any(
+    if re.search(
+        r"\b(explain|describe|how does|how do|why|advantages?|"
+        r"benefits?|features?|importance|role of)\b",
         q,
-        EXPLANATION_PATTERNS,
     ):
+        return "explanation"
 
-        intent = "explanation"
-
-    elif _matches_any(
+    if re.search(
+        r"\b(define|definition of|meaning of|what is|what's)\b",
         q,
-        DEFINITION_PATTERNS,
     ):
+        return "definition"
 
-        intent = "definition"
+    return "general"
 
-    else:
 
-        intent = "general"
+def detect_learning_context(query: str) -> str:
+    q = query.lower()
 
-    word_count = len(
-        q.split()
-    )
-
-    if word_count <= 8:
-
-        complexity = "low"
-
-    elif word_count <= 18:
-
-        complexity = "medium"
-
-    else:
-
-        complexity = "high"
-
-    number_match = re.search(
-        r"\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+"
-        r"(tiers?|parts?|steps?|stages?|components?|points?|factors?|"
-        r"methods?|types?|features?|principles?|items?|ways?|reasons?)\b",
+    if re.search(
+        r"\b(exam|revision|study|prepare|preparation|important questions?)\b",
         q,
-    )
+    ):
+        return "exam_preparation"
+
+    if re.search(
+        r"\b(assignment|report|project|coursework)\b",
+        q,
+    ):
+        return "assignment"
+
+    if re.search(
+        r"\b(research|paper|literature|research question)\b",
+        q,
+    ):
+        return "research"
+
+    return "conceptual_learning"
+
+
+def detect_required_count(query: str):
+    q = query.lower()
 
     number_map = {
         "one": 1,
@@ -161,54 +79,62 @@ def analyze_query(
         "ten": 10,
     }
 
-    required_count = None
+    pattern = (
+        r"\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+"
+        r"(tiers?|parts?|steps?|stages?|components?|points?|factors?|"
+        r"methods?|types?|features?|principles?|items?|ways?|reasons?|"
+        r"building blocks?|elements?|aspects?|characteristics?)\b"
+    )
 
-    if number_match:
+    match = re.search(pattern, q)
 
-        value = number_match.group(1)
+    if not match:
+        return None
 
-        required_count = number_map.get(
-            value,
-            int(value)
-            if value.isdigit()
-            else None,
-        )
+    value = match.group(1)
+
+    if value.isdigit():
+        return int(value)
+
+    return number_map.get(value)
+
+
+def analyze_query(query: str) -> dict:
+    query = query.strip()
+
+    if not query:
+        return {
+            "query": query,
+            "intent": "general",
+            "complexity": "low",
+            "multi_concept": False,
+            "required_count": None,
+            "learning_context": "conceptual_learning",
+        }
+
+    intent = detect_intent(query)
+    learning_context = detect_learning_context(query)
+    required_count = detect_required_count(query)
+
+    word_count = len(query.split())
+
+    if word_count <= 8:
+        complexity = "low"
+    elif word_count <= 18:
+        complexity = "medium"
+    else:
+        complexity = "high"
 
     multi_concept = (
         required_count is not None
+        or intent == "comparison"
         or bool(
             re.search(
-                r"\b(and|between|multiple|several|both)\b",
-                q,
+                r"\b(and|between|multiple|several|both|all|each)\b",
+                query.lower(),
             )
         )
-        or intent == "comparison"
     )
-
-    if re.search(
-        r"\b(exam|revision|study|prepare|preparation|important questions?)\b",
-        q,
-    ):
-
-        learning_context = "exam_preparation"
-
-    elif re.search(
-        r"\b(assignment|report|project|coursework)\b",
-        q,
-    ):
-
-        learning_context = "assignment"
-
-    elif re.search(
-        r"\b(research|paper|literature|research question)\b",
-        q,
-    ):
-
-        learning_context = "research"
-
-    else:
-
-        learning_context = "conceptual_learning"
 
     return {
         "query": query,
