@@ -43,7 +43,8 @@ def detect_learning_context(query: str) -> str:
     q = query.lower()
 
     if re.search(
-        r"\b(exam|revision|study|prepare|preparation|important questions?)\b",
+        r"\b(exam|revision|study|prepare|preparation|"
+        r"important questions?)\b",
         q,
     ):
         return "exam_preparation"
@@ -99,10 +100,240 @@ def detect_required_count(query: str):
     return number_map.get(value)
 
 
+def extract_named_requirements(query: str) -> list[str]:
+    """
+    Extract explicit multi-part requirements from questions.
+
+    This is intentionally conservative in Phase 1.
+    We are identifying what the user explicitly asks for,
+    not yet trying to infer requirements from the PDF.
+    """
+
+    q = query.strip()
+
+    requirements = []
+
+    # Pattern:
+    # "A, B, C, D and E"
+    #
+    # We only use this for phrases following common
+    # requirement indicators.
+
+    indicators = [
+        "explain",
+        "describe",
+        "cover",
+        "include",
+        "discuss",
+        "identify",
+        "list",
+    ]
+
+    for indicator in indicators:
+
+        pattern = rf"\b{indicator}\b(.+?)(?:\.|$)"
+
+        match = re.search(
+            pattern,
+            q,
+            flags=re.IGNORECASE,
+        )
+
+        if not match:
+            continue
+
+        phrase = match.group(1)
+
+        # Split on commas and "and".
+        parts = re.split(
+            r",|\band\b",
+            phrase,
+            flags=re.IGNORECASE,
+        )
+
+        cleaned_parts = []
+
+        for part in parts:
+
+            part = part.strip(
+                " ,:;.-"
+            )
+
+            if not part:
+                continue
+
+            # Avoid treating generic phrases as evidence
+            # requirements.
+            generic_phrases = {
+                "the complete",
+                "the following",
+                "the concept",
+                "the topic",
+                "how",
+                "why",
+                "the",
+            }
+
+            if part.lower() in generic_phrases:
+                continue
+
+            cleaned_parts.append(part)
+
+        if len(cleaned_parts) >= 2:
+            requirements.extend(cleaned_parts)
+
+        break
+
+    return requirements
+
+
+def infer_evidence_requirements(
+    query: str,
+    intent: str,
+    learning_context: str,
+    required_count,
+    multi_concept: bool,
+) -> dict:
+
+    named_requirements = extract_named_requirements(
+        query
+    )
+
+    requirements = []
+
+    # --------------------------------------------------
+    # Explicit multi-part requirements
+    # --------------------------------------------------
+
+    if named_requirements:
+        requirements.extend(
+            named_requirements
+        )
+
+    # --------------------------------------------------
+    # Intent-based requirements
+    # --------------------------------------------------
+
+    if intent == "definition":
+
+        requirements.extend(
+            [
+                "definition",
+                "key concept",
+            ]
+        )
+
+    elif intent == "comparison":
+
+        requirements.extend(
+            [
+                "first concept",
+                "second concept",
+                "comparison points",
+            ]
+        )
+
+    elif intent == "explanation":
+
+        requirements.extend(
+            [
+                "main concept",
+                "supporting explanation",
+            ]
+        )
+
+    elif intent == "summarization":
+
+        requirements.extend(
+            [
+                "key points",
+                "main ideas",
+            ]
+        )
+
+    elif intent == "example":
+
+        requirements.extend(
+            [
+                "concept",
+                "examples or applications",
+            ]
+        )
+
+    elif intent == "general":
+
+        requirements.append(
+            "relevant information"
+        )
+
+    # --------------------------------------------------
+    # Required-count questions
+    # --------------------------------------------------
+
+    if required_count is not None:
+
+        requirements.append(
+            f"{required_count} requested items"
+        )
+
+    # --------------------------------------------------
+    # Learning-context requirements
+    # --------------------------------------------------
+
+    if learning_context == "exam_preparation":
+
+        requirements.append(
+            "important exam-focused information"
+        )
+
+    elif learning_context == "assignment":
+
+        requirements.append(
+            "assignment-relevant supporting evidence"
+        )
+
+    elif learning_context == "research":
+
+        requirements.append(
+            "broader supporting evidence"
+        )
+
+    # --------------------------------------------------
+    # Remove duplicates while preserving order
+    # --------------------------------------------------
+
+    unique_requirements = []
+
+    seen = set()
+
+    for requirement in requirements:
+
+        normalized = requirement.lower().strip()
+
+        if normalized in seen:
+            continue
+
+        seen.add(normalized)
+
+        unique_requirements.append(
+            requirement
+        )
+
+    return {
+        "requirements": unique_requirements,
+        "explicit_requirements": named_requirements,
+        "requirement_count": len(
+            unique_requirements
+        ),
+    }
+
+
 def analyze_query(query: str) -> dict:
+
     query = query.strip()
 
     if not query:
+
         return {
             "query": query,
             "intent": "general",
@@ -110,18 +341,31 @@ def analyze_query(query: str) -> dict:
             "multi_concept": False,
             "required_count": None,
             "learning_context": "conceptual_learning",
+            "evidence_requirements": [],
+            "explicit_requirements": [],
+            "requirement_count": 0,
         }
 
     intent = detect_intent(query)
-    learning_context = detect_learning_context(query)
-    required_count = detect_required_count(query)
 
-    word_count = len(query.split())
+    learning_context = detect_learning_context(
+        query
+    )
+
+    required_count = detect_required_count(
+        query
+    )
+
+    word_count = len(
+        query.split()
+    )
 
     if word_count <= 8:
         complexity = "low"
+
     elif word_count <= 18:
         complexity = "medium"
+
     else:
         complexity = "high"
 
@@ -130,10 +374,19 @@ def analyze_query(query: str) -> dict:
         or intent == "comparison"
         or bool(
             re.search(
-                r"\b(and|between|multiple|several|both|all|each)\b",
+                r"\b(and|between|multiple|several|"
+                r"both|all|each)\b",
                 query.lower(),
             )
         )
+    )
+
+    evidence_plan = infer_evidence_requirements(
+        query=query,
+        intent=intent,
+        learning_context=learning_context,
+        required_count=required_count,
+        multi_concept=multi_concept,
     )
 
     return {
@@ -143,4 +396,15 @@ def analyze_query(query: str) -> dict:
         "multi_concept": multi_concept,
         "required_count": required_count,
         "learning_context": learning_context,
+
+        # New adaptive information
+        "evidence_requirements": evidence_plan[
+            "requirements"
+        ],
+        "explicit_requirements": evidence_plan[
+            "explicit_requirements"
+        ],
+        "requirement_count": evidence_plan[
+            "requirement_count"
+        ],
     }
