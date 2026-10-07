@@ -2,247 +2,217 @@
 
 ## An Adaptive Retrieval-Augmented Generation Framework for Intelligent Academic Knowledge Management
 
-Adaptive Academic RAG is a Retrieval-Augmented Generation (RAG) system designed for academic question answering.
+This project implements an **Adaptive Retrieval-Augmented Generation (RAG) framework for academic knowledge management**.
 
-The system introduces an adaptive evidence composition and validation process that changes the retrieved evidence according to the educational context and requirements of the user's query.
+The system retrieves relevant academic evidence, adapts evidence composition according to the educational context of a query, validates whether the retrieved evidence is sufficient, performs targeted re-retrieval when necessary, and generates a grounded academic response.
 
-The framework also allows the user to select a specific academic PDF as the knowledge source. Initial retrieval and adaptive re-retrieval are restricted to the selected document.
-
-Instead of using a fixed:
-
-```text
-Retrieve → Generate
-```
-
-pipeline, the proposed framework follows:
-
-```text
-Retrieve → Compose → Validate → Re-retrieve if necessary
-→ Compose → Validate → Generate
-```
+The core idea is **Adaptive Educational Evidence Composition** rather than using a fixed retrieve-then-generate pipeline.
 
 ---
 
-## Project Objective
+## Key Idea
 
-The objective of this project is to develop an adaptive RAG framework for intelligent academic knowledge management.
+The system follows an adaptive pipeline:
 
-The system aims to:
+```text
+User Query
+    ↓
+Query & Educational Context Analysis
+    ↓
+Initial Retrieval
+    ↓
+Adaptive Evidence Composition
+    ↓
+Evidence Validation
+    ↓
+Is Evidence Sufficient?
+   ↙              ↘
+ No                Yes
+ ↓                  ↓
+Targeted           Evidence
+Re-retrieval       Re-ranking
+ ↓                  ↓
+Compose Again       ↓
+ ↓                  ↓
+Validate Again      ↓
+   ↘              ↙
+      Generation
+          ↓
+   Personalized
+ Academic Response
+```
 
-- Retrieve relevant academic information from indexed documents.
-- Allow the user to select a specific academic PDF as the knowledge source.
-- Analyze the educational intent and context of a query.
-- Adapt the amount and composition of evidence according to the query.
-- Validate whether the retrieved evidence is sufficient.
-- Perform targeted re-retrieval when evidence is insufficient.
-- Restrict adaptive re-retrieval to the selected academic document.
-- Generate grounded academic responses using validated evidence.
-- Provide citations referring to the retrieved academic sources.
+If the initial evidence does not adequately cover the requirements of the query, the system generates targeted retrieval queries and retrieves additional evidence before generating the final response.
 
 ---
 
-## Key Idea: Adaptive Educational Evidence Composition
+## Main Features
 
-The main adaptive component of the framework is **Adaptive Educational Evidence Composition**.
+- Academic PDF document ingestion
+- Paragraph-aware document chunking
+- Gemini-based document and query embeddings
+- PostgreSQL + pgvector academic document store
+- Semantic vector retrieval
+- Educational query intent analysis
+- Learning-context detection
+- Evidence requirement detection
+- Adaptive evidence composition
+- Evidence coverage and sufficiency validation
+- Targeted re-retrieval for missing evidence
+- Evidence re-ranking
+- Redundancy reduction
+- Gemini-based grounded response generation
+- Academic source/page citations
+- Learner profile and feedback handling
+- Personalized response presentation
+- Streamlit-based user interface
+- Retrieval history and evidence inspection
 
-The system does not treat every query in the same way.
+---
 
-| Query Type | Evidence Strategy |
+## Adaptive Educational Evidence Composition
+
+The main adaptive component of the project is **Adaptive Educational Evidence Composition**.
+
+The system adapts evidence selection according to the educational purpose and requirements of the query.
+
+| Query Type | Evidence Adaptation |
 |---|---|
-| Definition | Concise evidence from relevant sections |
-| Explanation | Multiple supporting evidence chunks |
+| Definition | Concise evidence explaining the concept |
+| Explanation | Evidence containing the concept and supporting explanation |
 | Comparison | Evidence covering the concepts being compared |
-| Summary | Key information from relevant sections |
-| Examples | Evidence containing examples or applications |
-| Exam Preparation | Focused and important learning content |
-| Research | Broader and more authoritative evidence |
+| Exam Preparation | Focused notes, key points, and relevant examples |
+| Research | More comprehensive and authoritative evidence |
+| Multi-part Question | Evidence selected to cover the requested parts |
 
-If the initial evidence does not satisfy the requirements of the query, the system performs targeted re-retrieval and composes the evidence again.
-
----
-
-## Document-Specific Retrieval
-
-The system provides interactive academic document selection.
-
-When the system starts, the available PDF files in the academic document directory are displayed to the user.
-
-Example:
-
-```text
-AVAILABLE ACADEMIC FILES
-
-1. MODULE 2.pdf
-2. Module 4.pdf
-3. test_notes.pdf
-
-Select a PDF number:
-```
-
-The selected document becomes the retrieval source for the current question-answering session.
-
-The retrieval system applies a document-level filter so that evidence is retrieved only from the selected PDF. This restriction is maintained during adaptive re-retrieval.
-
----
-
-## Adaptive Retrieval Mechanism
-
-The adaptive mechanism operates in multiple stages.
-
-### Stage 1: Query Analysis
-
-The query is analyzed to determine:
-
-- Query intent
-- Learning context
-- Query complexity
-- Multi-concept requirements
-- Required number of items when explicitly specified
-
-### Stage 2: Initial Retrieval
-
-Relevant candidate evidence is retrieved from the selected academic PDF.
-
-### Stage 3: Evidence Composition
-
-The retrieved candidates are composed according to the requirements of the query.
-
-### Stage 4: Evidence Validation
-
-The composed evidence is evaluated using factors such as:
-
-- Evidence coverage
-- Retrieval score
-- Required concept coverage
-- Evidence sufficiency
-
-### Stage 5: Adaptive Re-retrieval
-
-If the evidence is insufficient, the system generates targeted retrieval queries based on the detected requirements or missing evidence.
-
-The additional evidence is merged with the existing candidates.
-
-### Stage 6: Re-composition and Re-validation
-
-The expanded candidate pool is composed again and validated.
-
-### Stage 7: Response Generation
-
-The validated evidence is passed to the generation component to produce a grounded academic response.
+The system does not simply retrieve a fixed number of chunks and immediately generate an answer. It checks whether the selected evidence is sufficient and can perform targeted re-retrieval when evidence is missing.
 
 ---
 
 ## System Architecture
 
-The framework consists of the following modules:
+### Module 1 — Academic Data Ingestion & Knowledge Base
 
-1. **Academic Data Ingestion & Knowledge Base**
-2. **Query & Educational Context Analysis**
-3. **Candidate Retrieval & Ranking**
-4. **Adaptive Educational Evidence Composition**
-5. **Evidence Validation & Re-ranking**
-6. **RAG Generation & Response Personalization**
-7. **User Profile & Feedback**
+Collects and prepares academic documents for retrieval.
 
-Final responses are passed through a post-processing/output layer for formatting, citations, and presentation.
+Main components:
+
+- Document ingestion
+- Text extraction and cleaning
+- Chunking engine
+- Metadata management
+- Embedding generation
+- Vector database/index
+
+**Output:** Searchable academic knowledge base.
+
+### Module 2 — Query & Educational Context Analysis
+
+Analyzes the user's query and identifies its educational requirements.
+
+It considers:
+
+- Query intent
+- Learning context
+- Query complexity
+- Multiple concepts
+- Required number of items
+- Evidence requirements
+- Explicit requirements
+
+**Output:** Structured educational query context.
+
+### Module 3 — Candidate Retrieval & Ranking
+
+Retrieves potentially relevant academic evidence and ranks the candidate documents.
+
+The project uses:
+
+- Gemini embeddings
+- PostgreSQL
+- pgvector
+- Semantic retrieval
+- Metadata filtering
+- Candidate ranking
+
+**Output:** Ranked candidate evidence pool.
+
+### Module 4 — Adaptive Educational Evidence Composition
+
+This is the core adaptive module.
+
+It selects and combines evidence according to the query context and evidence requirements.
+
+It attempts to:
+
+- Cover different requirements
+- Cover requested items
+- Reduce duplicate evidence
+- Select complementary evidence
+- Build an evidence set suitable for validation and generation
+
+**Output:** Adaptively composed evidence set.
+
+### Module 5 — Evidence Validation & Re-ranking
+
+Checks whether the composed evidence is sufficient for answering the query.
+
+It evaluates:
+
+- Evidence relevance
+- Evidence coverage
+- Requested-item coverage
+- Supporting descriptions
+- Content quality
+- Structural quality
+- Redundancy
+
+If evidence is insufficient, the adaptive retrieval controller triggers targeted re-retrieval.
+
+**Output:** Validated and re-ranked evidence.
+
+### Module 6 — RAG Generation & Response Personalization
+
+Generates the final response using the validated academic evidence.
+
+The generation layer:
+
+- Uses only supplied academic evidence
+- Produces structured academic answers
+- Preserves important academic terminology
+- Includes source/page citations
+- Adapts presentation to learner preferences
+
+**Output:** Grounded academic response.
+
+### Module 7 — User Profile & Feedback
+
+Maintains learner interaction and feedback information.
+
+It can track:
+
+- Preferred detail level
+- Preferred response format
+- Preference for examples
+- Preference for citations
+- Learning history
+- Feedback history
+- Interaction count
+
+**Output:** Updated learner profile and personalization context.
 
 ---
 
-## Adaptive Pipeline
+## Post-processing & Output
 
-```text
-User
- │
- ▼
-Select Academic PDF
- │
- ▼
-User Query
- │
- ▼
-Query & Educational Context Analysis
- │
- ▼
-Candidate Retrieval & Ranking
- │
- ▼
-Adaptive Educational Evidence Composition
- │
- ▼
-Evidence Validation
- │
- ▼
-Is Evidence Sufficient?
- │
- ├── Yes ───────────────► RAG Generation
- │                              │
- │                              ▼
- │                       Final Response
- │
- └── No
-       │
-       ▼
- Targeted Re-retrieval
-       │
-       │  Same Selected PDF
-       ▼
- Evidence Composition
-       │
-       ▼
- Evidence Validation
-       │
-       ├── Sufficient ──► RAG Generation
-       │
-       └── Insufficient
-              │
-              ▼
-        Further Adaptive
-        Re-retrieval
-```
+The final response can be:
 
----
+- Structured
+- Citation-formatted
+- Quality checked
+- Rendered through the Streamlit interface
 
-## Example of Adaptive Retrieval
-
-For a broad question such as:
-
-```text
-Explain the complete Streaming Analytics Architecture from Collection Tier to Delivery Tier and describe how high availability and Paxos support the architecture.
-```
-
-the system may determine that the initial evidence is insufficient.
-
-Example execution:
-
-```text
-Iteration 1: Initial Retrieval
-Evidence: Insufficient
-Coverage: 0.46
-
-        ↓
-
-Adaptive Retrieval Triggered
-
-        ↓
-
-Targeted Re-retrieval
-
-        ↓
-
-Iteration 2: Adaptive Retrieval
-Evidence: Sufficient
-Coverage: 0.73
-
-        ↓
-
-RAG Generation
-
-        ↓
-
-Final Academic Response
-```
-
-The system does not automatically perform additional retrieval for every query. Adaptive retrieval is triggered when the validation stage determines that the initial evidence is insufficient.
+The interface also provides access to evidence and adaptive retrieval information for inspection.
 
 ---
 
@@ -256,13 +226,16 @@ adaptive-academic-rag/
 │       ├── components/
 │       │   ├── embedding_service.py
 │       │   ├── evidence_composer.py
+│       │   ├── evidence_reranker.py
 │       │   ├── evidence_validator.py
 │       │   ├── gemini_generator.py
 │       │   ├── query_analyser.py
-│       │   └── retriever.py
+│       │   ├── retriever.py
+│       │   └── user_profile.py
 │       │
 │       ├── pipelines/
 │       │   ├── adaptive_rag_pipeline.py
+│       │   ├── generation_pipeline.py
 │       │   └── indexing_pipeline.py
 │       │
 │       ├── config.py
@@ -271,6 +244,7 @@ adaptive-academic-rag/
 │
 ├── data/
 │   └── raw_documents/
+│       └── <academic PDF files>
 │
 ├── frontend/
 │   └── streamlit_app.py
@@ -278,121 +252,293 @@ adaptive-academic-rag/
 ├── scripts/
 │   ├── ingest_documents.py
 │   ├── test_retrieval.py
-│   └── test_adaptive_rag.py
+│   ├── test_adaptive_rag.py
+│   ├── ph4_trigger.py
+│   ├── ph4_not_trigger.py
+│   ├── ph5_reranking.py
+│   ├── test_generation.py
+│   └── test_user_profile.py
 │
 ├── .env
+├── .gitignore
 └── README.md
 ```
 
-> **Note:** `.env` contains local configuration such as API credentials and should not be committed to the repository.
-
 ---
 
-## Technology Stack
+## Academic PDF Documents
 
-- **Python**
-- **Haystack**
-- **PostgreSQL**
-- **pgvector**
-- **Google Gemini**
-- **Streamlit**
-- **PyMuPDF**
-
----
-
-## Running the Adaptive RAG Test
-
-From the project root:
-
-```powershell
-python -m scripts.test_adaptive_rag
-```
-
-The application displays the available academic PDFs and allows the user to select one document.
-
-After selecting the document, enter an academic question.
-
-The system displays:
-
-- Generated answer
-- Selected source
-- Adaptive Retrieval status
-- Query understanding
-- Evidence validation
-- Top evidence
-- Retrieval process and iterations
-
----
-
-## Adaptive RAG Status
-
-The system can report two main states.
-
-### Adaptive Retrieval Not Required
-
-```text
-Adaptive Retrieval: Not Required
-Reason: Initial evidence was sufficient
-Retrieval Iterations: 1
-```
-
-This means the initial evidence was sufficient to answer the query.
-
-### Adaptive Retrieval Triggered
-
-```text
-Adaptive Retrieval: Triggered
-Reason: Initial evidence was insufficient
-Retrieval Iterations: 2
-Initial Evidence: Insufficient
-Adaptive Re-retrieval: Completed
-Evidence Re-validation: Completed
-```
-
-This indicates that the system detected insufficient initial evidence and performed adaptive re-retrieval before generating the final response.
-
----
-
-## Current Academic Documents
-
-The project can work with multiple academic PDFs placed in:
+The academic PDF documents used by the system **must be placed inside**:
 
 ```text
 data/raw_documents/
 ```
 
-The available documents are discovered dynamically by the test application rather than being hardcoded into the retrieval pipeline.
+For example:
 
-New PDF documents can therefore be added to the document collection and indexed before use.
+```text
+data/
+└── raw_documents/
+    ├── MODULE 2.pdf
+    ├── Module 4.pdf
+    └── test_notes.pdf
+```
+
+The Streamlit interface automatically reads the PDF files from this folder and provides them as source-selection options.
+
+### Important
+
+PDF files are intentionally excluded from GitHub using:
+
+```gitignore
+data/raw_documents/*.pdf
+```
+
+Therefore:
+
+- The `data/raw_documents/` folder is part of the project.
+- The actual academic PDFs are required for local execution.
+- The PDFs should be manually placed in `data/raw_documents/` after cloning the repository.
+- The PDFs are not uploaded to GitHub.
+
+After placing the PDFs in the folder, run the document ingestion pipeline before using retrieval.
+
+---
+
+## Technologies Used
+
+- Python
+- Streamlit
+- Haystack
+- Google Gemini
+- Gemini Embeddings
+- PostgreSQL
+- pgvector
+- PyMuPDF
+- HNSW vector indexing
+
+---
+
+## Environment Setup
+
+### 1. Clone the repository
+
+```bash
+git clone <your-github-repository-url>
+cd adaptive-academic-rag
+```
+
+### 2. Create a virtual environment
+
+Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+### 3. Install dependencies
+
+Install the required Python packages for the project.
+
+If a `requirements.txt` file is available:
+
+```powershell
+pip install -r requirements.txt
+```
+
+### 4. Configure the Gemini API key
+
+Create a local `.env` file:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Do not commit this file to GitHub.
+
+### 5. Configure PostgreSQL
+
+The application uses PostgreSQL with pgvector for storing academic document embeddings.
+
+Ensure PostgreSQL is running and the project's database configuration is correctly set before running ingestion and retrieval.
+
+---
+
+## Adding Academic PDFs
+
+After cloning the repository, place your academic PDFs inside:
+
+```text
+data/raw_documents/
+```
+
+Example:
+
+```text
+data/raw_documents/
+├── MODULE 2.pdf
+├── Module 4.pdf
+└── another_academic_document.pdf
+```
+
+Then run the ingestion script:
+
+```powershell
+python scripts/ingest_documents.py
+```
+
+The ingestion pipeline extracts PDF text, creates chunks, generates embeddings, and stores the resulting documents in the academic vector database.
+
+---
+
+## Running the Application
+
+Start the Streamlit interface:
+
+```powershell
+streamlit run frontend/streamlit_app.py
+```
+
+The application provides:
+
+- PDF/source selection
+- Academic query input
+- Query analysis
+- Adaptive retrieval status
+- Evidence validation information
+- Final generated answer
+- Source/page citations
+- Evidence inspection
+- Adaptive retrieval history
+- Learner personalization
+- Feedback collection
+
+---
+
+## Testing
+
+Individual pipeline stages can be tested using the scripts in `scripts/`.
+
+Examples:
+
+```powershell
+python scripts/test_retrieval.py
+python scripts/test_adaptive_rag.py
+python scripts/ph4_trigger.py
+python scripts/ph4_not_trigger.py
+python scripts/ph5_reranking.py
+python scripts/test_generation.py
+python scripts/test_user_profile.py
+```
+
+The Phase 4 trigger and non-trigger tests are useful for demonstrating the adaptive behavior of the system.
+
+---
+
+## Example Adaptive Behavior
+
+For a query requiring multiple academic components, the initial retrieval may not contain enough evidence.
+
+The system can behave as follows:
+
+```text
+Initial Retrieval
+       ↓
+Evidence Composition
+       ↓
+Validation
+       ↓
+Insufficient Evidence
+       ↓
+Identify Missing Requirement
+       ↓
+Generate Targeted Query
+       ↓
+Targeted Re-retrieval
+       ↓
+Evidence Composition
+       ↓
+Validation
+       ↓
+Sufficient Evidence
+       ↓
+Evidence Re-ranking
+       ↓
+Grounded Generation
+```
+
+This adaptive loop is the central difference from a conventional fixed retrieval pipeline.
 
 ---
 
 ## Research Contribution
 
-The central research idea is **Adaptive Educational Evidence Composition**.
+The project focuses on **adaptive educational evidence composition** for academic RAG.
 
-Rather than applying the same retrieval strategy to every academic question, the framework analyzes the educational requirements of the query and dynamically determines whether the retrieved evidence is sufficient.
+Instead of treating every query with the same retrieval strategy, the framework uses the educational context and evidence requirements of the query to determine how evidence should be composed and whether additional targeted retrieval is necessary.
 
-When evidence is insufficient, the system adapts its retrieval process through targeted re-retrieval, followed by evidence composition and validation.
+The framework combines:
 
-The framework therefore introduces an adaptive decision loop into an academic RAG system:
+1. Educational query understanding
+2. Context-aware evidence composition
+3. Evidence sufficiency validation
+4. Targeted adaptive re-retrieval
+5. Evidence re-ranking
+6. Grounded response generation
+7. Learner-oriented personalization
+
+---
+
+## Security and Data Considerations
+
+- API keys must be stored in `.env` and must not be committed.
+- Academic PDF files are excluded from Git by default.
+- Users should only use academic documents they are permitted to process and distribute.
+- Do not commit sensitive or private documents to the repository.
+
+---
+
+## Current Status
+
+The project currently includes the adaptive RAG flow from:
 
 ```text
-Retrieve
-   ↓
-Compose
-   ↓
-Validate
-   ↓
-Adapt if necessary
-   ↓
-Re-retrieve
-   ↓
-Compose
-   ↓
-Validate
-   ↓
-Generate
+Academic PDFs
+     ↓
+Ingestion
+     ↓
+Retrieval
+     ↓
+Query Analysis
+     ↓
+Adaptive Evidence Composition
+     ↓
+Evidence Validation
+     ↓
+Targeted Re-retrieval
+     ↓
+Evidence Re-ranking
+     ↓
+Gemini Generation
+     ↓
+Personalized Academic Response
 ```
 
-The document-selection mechanism further provides controlled, source-specific academic retrieval by restricting retrieval and adaptive re-retrieval to the PDF selected by the user.
+The Streamlit interface provides the main user-facing application.
+
+---
+
+## Future Improvements
+
+Potential future improvements include:
+
+- More advanced learner modeling
+- Improved educational intent classification
+- Additional academic source types
+- More robust evidence quality evaluation
+- Automated evaluation benchmarks
+- Citation correctness evaluation
+- Response faithfulness metrics
+- Learning-outcome-aware retrieval
+- More sophisticated feedback-driven adaptation
